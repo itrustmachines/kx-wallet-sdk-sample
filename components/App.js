@@ -1,17 +1,10 @@
 import { Button, TextField, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import { useState } from "react";
-import ConnectionSteps from "./ConnectionSteps";
-import {
-  getECCKeyList,
-  initialKeyToken,
-  loginToKeyTokenUsingFingerprint,
-  obtainAddress,
-  setSelectKeyObj,
-  signData,
-} from "./function/kxUtil";
+import ConnectionSteps from "../components/ConnectionSteps";
 
-const SignYourData = ({ onSignClick, signResult }) => {
+
+const SignYourData = ({ onSignClick, signResult, kxUtil }) => {
   const [message, setMessage] = useState("");
   return (
     <>
@@ -30,7 +23,7 @@ const SignYourData = ({ onSignClick, signResult }) => {
       />
       <Button
         variant="contained"
-        onClick={() => onSignClick(message)}
+        onClick={() => onSignClick(message, kxUtil)}
         sx={{ ml: 1 }}
       >
         Sign Data
@@ -57,7 +50,7 @@ const SignYourData = ({ onSignClick, signResult }) => {
   );
 };
 
-function App() {
+const App = ({ kxUtil }) => {
   const [processStep, setProcessStep] = useState(0);
   const [keyList, setKeyList] = useState(null);
   const [selectedKey, setSelectedKey] = useState(null);
@@ -65,8 +58,8 @@ function App() {
   const [signResult, setSignResult] = useState(null);
   const [address, setAddress] = useState("");
 
-  const onSignClick = (message) => {
-    signData(message)
+  const onSignClick = (message, kxUtil) => {
+    kxUtil.signData(message)
       .then((result) => {
         // Do something with the sign result. Usually you would send the request to BNS server.
         setSignResult(result);
@@ -77,18 +70,18 @@ function App() {
       });
   };
 
-  const startProcess = () => {
+  const startProcess = (kxUtil) => {
     setShowTryAgainBtn(false);
     setProcessStep(1);
     // Step1: Initial key. On the website, it's going to ask user to connect the key to the computer.
-    initialKeyToken()
+    kxUtil.initialKeyToken()
       .then(() => {
         // Step2: Verify Identity. On the website, it's going to ask user to use their fingerprint to login to the token.
         setProcessStep(2);
-        loginToKeyTokenUsingFingerprint()
+        kxUtil.loginToKeyTokenUsingFingerprint()
           .then(() => {
             // Step3: Read and ask user to choose the key to use on the website.
-            getECCKeyList().then((keyList) => {
+            kxUtil.getECCKeyList().then((keyList) => {
               setKeyList(keyList);
               setSelectedKey(keyList[0]);
               setProcessStep(3);
@@ -112,20 +105,20 @@ function App() {
   };
 
   // Step4: When the user select key, sign the message
-  const onKeyConfirm = () => {
+  const onKeyConfirm = (kxUtil) => {
     console.log("confirm click");
-    setSelectKeyObj(selectedKey);
+    kxUtil.setSelectKeyObj(selectedKey);
     setProcessStep(4);
   };
 
   return (
     <Box m={2}>
-      <Button variant="contained" onClick={startProcess}>
+      <Button variant="contained" onClick={() => startProcess(kxUtil)}>
         Start
       </Button>
       {showTryAgainBtn && (
         // Normally we ask user to try again from the first step in case the token has lost the connection.
-        <Button variant="outlined" onClick={startProcess} sx={{ ml: 2 }}>
+        <Button variant="outlined" onClick={() => startProcess(kxUtil)} sx={{ ml: 2 }}>
           Try Again
         </Button>
       )}
@@ -134,8 +127,8 @@ function App() {
           activeStep={processStep}
           keyOption={{ list: keyList, select: selectedKey }}
           onKeySelect={onKeySelect}
-          onConfirmClick={onKeyConfirm}
-          onSignClick={onSignClick}
+          onConfirmClick={() => onKeyConfirm(kxUtil)}
+          onSignClick={(message) => onSignClick(message, kxUtil)}
         />
       </Box>
       {processStep > 3 && (
@@ -144,12 +137,12 @@ function App() {
             Below are the method you could use after selecting the key.
           </Typography>
           <Box mt={2}>
-            <SignYourData onSignClick={onSignClick} signResult={signResult} />
+            <SignYourData onSignClick={(message) => onSignClick(message, kxUtil)} signResult={signResult} kxUtil={kxUtil} />
           </Box>
           <Box mt={2}>
             <Button
               variant="contained"
-              onClick={() => setAddress(obtainAddress())}
+              onClick={() => setAddress(kxUtil.obtainAddress())}
             >
               Obtain Address
             </Button>
@@ -160,7 +153,8 @@ function App() {
         </Box>
       )}
     </Box>
+
   );
-}
+};
 
 export default App;

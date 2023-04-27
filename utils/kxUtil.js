@@ -1,5 +1,5 @@
 import Web3 from "web3";
-import KxToken from "../lib/src/KxToken";
+import KxToken from "./lib/src/KxToken";
 import { pubToAddress, ethSign } from "kxeth-util";
 import { ethers } from "ethers";
 
